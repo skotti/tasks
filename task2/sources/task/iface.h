@@ -52,8 +52,8 @@ namespace Task
             pred_iterator preds_begin(); // Get iterator to the first predecessor edge
             pred_iterator preds_end();   // Get end iterator for the predecessors
 
-            pred_iterator succs_begin(); // Get iterator to the first successor edge
-            pred_iterator succs_end();   // Get end iterator for the successors
+            succ_iterator succs_begin(); // Get iterator to the first successor edge
+            succ_iterator succs_end();   // Get end iterator for the successors
 
             Graph& graph();  // Get the graph reference
             UId uid() const; // Get the node's unique id 
