@@ -1,133 +1,218 @@
-/**
- * @file: task/iface.h 
- * Interface of a programming task 2
- */
+
 #include "../Utils/utils_iface.h"
 #include <unordered_set>
-
+#include <list>
+#include <iterator>
+#include <exception>
 /* namespaces import */
 using namespace Utils;
-
+using namespace std;
 //Debug assert with diagnostic info
 #if !defined(GRAPH_ASSERTXD)
-#    define GRAPH_ASSERTXD(cond, what) ASSERT_XD(cond, "Graph", what)
+# define GRAPH_ASSERTXD(cond, what) ASSERT_XD(cond, "Graph", what)
 #endif
-
 // Simple debug assert
 #if !defined(GRAPH_ASSERTD)
-#    define GRAPH_ASSERTD(cond) ASSERT_XD(cond, "Graph", "")
+# define GRAPH_ASSERTD(cond) ASSERT_XD(cond, "Graph", "")
 #endif
 
-/**
- * Namespace for the programming task
- */
-namespace Task
+
+enum ErrType
 {
-    //
-    // Graph representation template
-    // @param NodeT class representing nodes of graph, should be inherited from Graph::Node
-    // @param EdgeT class representing edges of graph, should be inherited from Graph::Edge
-    //
-    template < class NodeT, class EdgeT> class Graph
+UNEXP, 
+BADDR, 
+NOTHING, 
+};
+namespace Task //< Namespace for the programming task
+{
+
+template <class NodeT, class EdgeT> class Graph
+{
+public:
+    typedef UInt32 UId; 
+    
+    static const UId INVALID_UID = (UId) (-1);
+    
+    typedef typename list<EdgeT>::iterator edge_iterator_1;
+    
+    typedef typename list<NodeT>::iterator node_iterator_1;
+    
+    template <class Param> class new_iterator
     {
-    public:
-        typedef UInt32 UId; //< Unique id type for node and edge
-        static const UId INVALID_UID = (UId) (-1);
-
-        class Error: public std::exception
-        {
-        };
-
-
-        //
-        // Graph node representation
-        //
-        class Node
-        {
+            typename list<Param>::iterator iter;
         public:
-            //---- Iterator types ----
-            class pred_iterator;// iterator for node's predecessor edges 
-            class succ_iterator;// iterator for node's successor edges 
+            new_iterator(const typename list<Param>::iterator &get_it): iter(get_it)
+            {}
+            new_iterator &operator++()
+            {
+                ++iter;
+                return *this;
+            }
+            new_iterator &operator--()
+            {
+                --iter;
+                return *this;
+            }
+            bool operator==(const new_iterator &get_par)
+            {
+                return iter == get_par.iter;
+            }
+        
+            bool operator!=(const new_iterator &get_par)
+            {
+                return iter != get_par.iter;
+            }
+        
+            Param &operator* ()
+            {
+                return *iter;
+            }
+    };
+    
+    
+    class Error: public exception
+    {
+        public:
+        inline virtual const char *what() const throw() { return "Graph exception happened"; }
+        ErrType type;
+    };
+    
+    
+    class Node
+    {
+        friend class Graph;
+        
+        public:
+        
+        typedef new_iterator<edge_iterator_1> pred_iterator; // node's predecessor edges 
+        typedef new_iterator<edge_iterator_1> succ_iterator; // node's successor edges 
 
-            pred_iterator preds_begin(); // Get iterator to the first predecessor edge
-            pred_iterator preds_end();   // Get end iterator for the predecessors
+        
+        pred_iterator preds_begin();
+        
+        pred_iterator preds_end();
+        
+        succ_iterator succs_begin();
+        
+        succ_iterator succs_end();
 
-            succ_iterator succs_begin(); // Get iterator to the first successor edge
-            succ_iterator succs_end();   // Get end iterator for the successors
+        Graph& graph();
+        
+        UId uid() const;
+        
 
-            Graph& graph();  // Get the graph reference
-            UId uid() const; // Get the node's unique id 
+        EdgeT &first_pred();
+        
+        EdgeT &first_succ();
 
-            EdgeT& first_pred(); // Convinience routine returns first predecessor edge or throws an exception
-            EdgeT& first_succ(); // Convinience routine returns first successor edge or throws an exception
-            
-            UInt32 num_preds() const; // Get the number of predecessors
-            UInt32 num_succs() const; // Get the number of successors
+      
+        UInt32 num_preds() const;
+    
+        UInt32 num_succs() const;
+        
 
         protected:
-            Node( Graph& g); // Constructor of the node
-            virtual ~Node();
+        
+        Node(Graph &g);
+        
+        virtual ~Node() {};
+
         private:
-            // ---- Default  and copy constructors turned off ---
-            Node();
-            Node(const Node &n);
-            
-            // ---- The internal implementation routines ----
+        
+        Node();
 
-            // ---- The data involved in the implementation ----
-        };
+        Node(const Node &n);
 
-        // 
-        // Graph edge representation
-        //
+        UId id_my;
+        
+        node_iterator_1 iter;
+        
+        Graph &_graph;
+        
+        list<edge_iterator_1> list_of_preds;
+        
+        list<edge_iterator_1> list_of_succs;
+
+    };
+    
+    
         class Edge
         {
+            friend class Graph;
+            
         public:
-            NodeT &pred(); // Get edge predecessor
-            NodeT &succ(); // Get edge successor
+            NodeT &pred();
+            
+            NodeT &succ();
+            
+            Graph &graph();
+            
+            UId uid() const;
+            
 
-            Graph& graph(); // Get the graph
-            UId uid() const;// Get the edge's unique id
         protected:
-            Edge( NodeT& p, NodeT& s); // Construct an edge between given nodes
-            virtual ~Edge();
+            
+            Edge(NodeT &p, NodeT &s);
+            virtual ~Edge() {};
+
         private:
-        // ---- Default  and copy constructors turned off ---
+            
             Edge();
-            Edge( const Edge &e);
-        // ---- The internal implementation routines ----
+            Edge(const Edge &e);
 
-        // ---- The data involved in the implementation ----
-    };
+            UId id_my;
+            
+            edge_iterator_1 iter;
+            
+            Graph &_graph;
+            
+            NodeT &one_of_preds;
+            
+            NodeT &one_of_succs;
+            
+            typename list<edge_iterator_1>::iterator this_class_pred_iter;
+            typename list<edge_iterator_1>::iterator this_class_succ_iter;
 
-    public:
-    // ---- Graph interface ----
-        class node_iterator; // Iterator for the graph's nodes
-        class edge_iterator; // Iterator for the graph's edges
-               
-        node_iterator nodes_begin(); // Get the iterator to the first node
-        node_iterator nodes_end();   // Get the end iterator for the nodes
-
-        edge_iterator edges_begin(); // Get the iterator to the first edge
-        edge_iterator edges_end();   // Get the end iterator for the edges
-
-        UInt32 num_nodes() const; // Get the number of nodes
-        UInt32 num_edges() const; // Get the number of edges
-
-        NodeT &create_node();                   // Create a new node and return reference to it
-        EdgeT &create_edge( NodeT& pred, NodeT& succ); // Create a new edge between given nodes
-    
-        void remove( NodeT& node); // Remove and delete node
-        void remove( EdgeT& edge); // Remove and delete edge
-
-        virtual ~Graph(); // Destructor, deletes all nodes and edges
-    private:
-        // ---- The internal implementation routines ----
-
-        // ---- The data involved in the implementation ----
-    };
-
-    bool uTest( UnitTest *utest_p);
 };
 
+            typedef new_iterator<NodeT> node_iterator;
+            typedef new_iterator<EdgeT> edge_iterator;
+
+            node_iterator nodes_begin();
+    
+            node_iterator nodes_end();
+    
+            edge_iterator edges_begin();
+    
+            edge_iterator edges_end();
+
+            UInt32 num_nodes() const;
+
+    
+            UInt32 num_edges() const;
+            
+
+            NodeT &create_node(); // Create a new node and return reference to it
+    
+            EdgeT &create_edge(NodeT &pred, NodeT &succ); // Create an edge between nodes
+
+            void remove(NodeT &node); // Remove and delete node
+            void remove(EdgeT &edge); // Remove and delete edge
+
+            Graph()
+            {
+                list_of_id.push_back(1);
+            }
+    
+            virtual ~Graph() {}
+    
+            list<UId> list_of_id;
+        private:
+    
+            list<NodeT> list_of_nodes;
+            list<EdgeT> list_of_edges;
+
+};
+bool uTest (UnitTest *utest_p);
+};
 #include "graph_impl.h"
